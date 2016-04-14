@@ -52,7 +52,6 @@ def string_list_save(save_path, filename, slist):
 
 
 def page_info(my_page):
-    """Xpath"""
     dom = etree.HTML(my_page)
     origin_news_items = dom.xpath('//div[@class = "result"]/h3/a')
     news_urls = dom.xpath('//div[@class = "result"]/h3/a/@href')
@@ -65,7 +64,6 @@ def page_info(my_page):
 
 
 def next_page(my_page):
-    """Xpath"""
     dom = etree.HTML(my_page)
     dom_name = "http://news.baidu.com"
     next_page_url_sfx = dom.xpath('//p[@id = "page"]/a[@class = "n"]/@href')
@@ -74,7 +72,7 @@ def next_page(my_page):
     return next_page_url
 
 
-def crawler(url, name):
+def crawler(url, name, max_page):
     page_cnt = 0
     content_cnt = 0
     print "downloading ", url
@@ -86,10 +84,12 @@ def crawler(url, name):
     create_file(save_path, filename)
     string_list_save(save_path, filename, my_page_results)
     new_page = my_page
-    while page_cnt < 30:
+    while page_cnt < max_page:
         page_cnt += 1
         new_page_url = next_page(new_page)
-        print "downloading ", name,  new_page_url
+        if new_page_url[-2:] == '-1':
+            break
+        print "downloading ", name, new_page_url
         new_page = requests.get(new_page_url).content.decode("utf8")
         new_page_results = page_info(new_page)
         filename = unicode(name)
@@ -100,12 +100,15 @@ def crawler(url, name):
 
 if __name__ == '__main__':
 
-    my_collector = NewsCollector(["万科", "恒大", "保利"], '2013-01-01', '2013-04-01')
+    my_collector = NewsCollector(["万科", "恒大", "保利"], '2013-03-31', '2013-04-01')
+
+    page_upper_limit = 50
 
     threads = []
     for ind in range(my_collector.size()):
         threads.append(threading.Thread(target=crawler,
-                                        args=(my_collector.get_start_url(ind), my_collector.get_keyword(ind))))
+                                        args=(my_collector.get_start_url(ind), my_collector.get_keyword(ind),
+                                              page_upper_limit)))
     for thr in threads:
         thr.setDaemon(True)
         thr.start()
