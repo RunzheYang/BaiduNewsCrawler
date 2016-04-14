@@ -1,4 +1,4 @@
-# BaiduNewCrawler
+# BaiduNewsCrawler
 A python web crawler for baidu news
 
 ### New features:
