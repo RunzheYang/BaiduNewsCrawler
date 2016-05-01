@@ -4,6 +4,7 @@ import os
 import requests
 import time
 import threading
+import xlrd
 from lxml import etree
 
 import sys
@@ -15,24 +16,35 @@ sys.setdefaultencoding('utf8')
 class NewsCollector:
     def __init__(self, namelist, start_time, end_time):
         self.keywords = []
+        self.st = []
+        self.et = []
+        self.start_url = []
+        self.outputname = []
         token_cnt = 0
         while token_cnt < len(namelist):
             self.keywords.append(unicode(namelist[token_cnt]))
+            self.outputname.append(unicode(namelist[token_cnt]
+                                           + "(" + start_time[token_cnt] + "-" + end_time[token_cnt]) + ")")
+
+            self.st.append(int(time.mktime(time.strptime(start_time[token_cnt], "%Y-%m-%d"))))
+            self.et.append(int(time.mktime(time.strptime(end_time[token_cnt], "%Y-%m-%d"))))
+            self.start_url.append("http://news.baidu.com/ns?from=news&cl=2&bt=" + str(self.st[token_cnt]) + \
+                                  "&et=" + str(self.et[token_cnt]) + \
+                                  "&submit=%B0%D9%B6%C8%D2%BB%CF%C2&mt=0&lm=&s=2&tn=news&word=")
+
             token_cnt += 1
-        self.st = int(time.mktime(time.strptime(start_time, "%Y-%m-%d")))
-        self.et = int(time.mktime(time.strptime(end_time, "%Y-%m-%d")))
-        self.start_url = "http://news.baidu.com/ns?from=news&cl=2&bt=" + str(self.st) + \
-                         "&et=" + str(self.et) + \
-                         "&submit=%B0%D9%B6%C8%D2%BB%CF%C2&mt=0&lm=&s=2&tn=news&word="
 
     def get_keyword(self, index):
         return self.keywords[index]
+
+    def get_outputname(self, index):
+        return self.outputname[index]
 
     def size(self):
         return len(self.keywords)
 
     def get_start_url(self, index):
-        return self.start_url + self.keywords[index]
+        return self.start_url[index] + self.keywords[index]
 
 
 def create_file(save_path, filename):
@@ -100,14 +112,20 @@ def crawler(url, name, max_page):
 
 if __name__ == '__main__':
 
-    my_collector = NewsCollector(["万科", "恒大", "保利"], '2013-03-31', '2013-04-01')
+    data = xlrd.open_workbook('sample.xlsx').sheets()[0]
 
-    page_upper_limit = 50
+    my_collector = NewsCollector(data.col_values(0), data.col_values(1), data.col_values(2))
+
+    # my_collector = NewsCollector(["万科", "恒大", "保利", "万达", "华润"],
+    #                              ['2013-04-01', '2014-04-01', '2012-04-01', '2013-04-01', '2013-04-01'],
+    #                              ['2013-04-04', '2014-04-02', '2012-04-02', '2013-04-02', '2013-04-02'])
+
+    page_upper_limit = 60
 
     threads = []
     for ind in range(my_collector.size()):
         threads.append(threading.Thread(target=crawler,
-                                        args=(my_collector.get_start_url(ind), my_collector.get_keyword(ind),
+                                        args=(my_collector.get_start_url(ind), my_collector.get_outputname(ind),
                                               page_upper_limit)))
     for thr in threads:
         thr.setDaemon(True)
